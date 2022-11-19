@@ -1,0 +1,517 @@
+# name: Blaine Graham
+# date: 2/22/2021
+# assignment 2
+
+
+from matplotlib import pyplot as plt
+import numpy as np
+import sklearn
+import warnings
+from numpy import absolute, arange
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score, RepeatedKFold
+from sklearn.linear_model import LinearRegression
+import pandas as pd
+from sklearn import datasets
+import seaborn as sns
+from sklearn.svm import SVC
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.linear_model import Ridge, Lasso, ElasticNet, RidgeCV, LassoCV, ElasticNetCV
+import statsmodels.api as sm
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.compose import make_column_transformer
+
+#load ames data into panda data frame
+url = 'http://www.amstat.org/publications/jse/v19n3/decock/AmesHousing.xls'
+df1 = pd.read_excel(url)
+
+
+
+
+
+
+
+
+
+# part 1
+# create figure and subplots
+fig1, cont_plot = plt.subplots(4,5)
+fig1.set_figwidth(20)
+fig1.set_figheight(10)
+plt.autoscale()
+plt.tight_layout()
+
+
+# univariate distributions of continuous variables
+sns.histplot(df1['Lot Frontage'], bins=20, ax=cont_plot[0,0], stat='density')
+sns.histplot(df1['Lot Area'], bins=20, ax=cont_plot[0,1], stat='density')
+sns.histplot(df1['Mas Vnr Area'], bins=20, ax=cont_plot[0,2], stat='density')
+sns.histplot(df1['BsmtFin SF 1'], bins=20, ax=cont_plot[0,3], stat='density')
+sns.histplot(df1['BsmtFin SF 2'], bins=20, ax=cont_plot[0,4], stat='density')
+
+sns.histplot(df1['Bsmt Unf SF'], bins=20, ax=cont_plot[1,0], stat='density')
+sns.histplot(df1['Total Bsmt SF'], bins=20, ax=cont_plot[1,1], stat='density')
+sns.histplot(df1['1st Flr SF'], bins=20, ax=cont_plot[1,2], stat='density')
+sns.histplot(df1['2nd Flr SF'], bins=20, ax=cont_plot[1,3], stat='density')
+sns.histplot(df1['Low Qual Fin SF'], bins=20, ax=cont_plot[1,4], stat='density')
+
+sns.histplot(df1['Gr Liv Area'], bins=20, ax=cont_plot[2,0], stat='density')
+sns.histplot(df1['Garage Area'], bins=20, ax=cont_plot[2,1], stat='density')
+sns.histplot(df1['Wood Deck SF'], bins=20, ax=cont_plot[2,2], stat='density')
+sns.histplot(df1['Open Porch SF'], bins=20, ax=cont_plot[2,3], stat='density')
+sns.histplot(df1['Enclosed Porch'], bins=20, ax=cont_plot[2,4], stat='density')
+
+sns.histplot(df1['3Ssn Porch'], bins=20, ax=cont_plot[3,0], stat='density')
+sns.histplot(df1['Screen Porch'], bins=20, ax=cont_plot[3,1], stat='density')
+sns.histplot(df1['Pool Area'], bins=20, ax=cont_plot[3,2], stat='density')
+sns.histplot(df1['Misc Val'], bins=20, ax=cont_plot[3,3], stat='density')
+sns.histplot(df1['SalePrice'], bins=20, ax=cont_plot[3,4], stat='density')
+
+
+
+# part 2
+# Sale Price dependency on variable feature
+# create figure and subplots
+fig2, cont_plot2 = plt.subplots(4,5)
+fig2.set_figwidth(20)
+fig2.set_figheight(10)
+plt.autoscale()
+plt.tight_layout()
+#display(list(df1.columns.values))
+
+sns.regplot(x=df1['Lot Frontage'], y=df1['SalePrice'], ax=cont_plot2[0,0], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Lot Area'], ax=cont_plot2[0,1], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Mas Vnr Area'], ax=cont_plot2[0,2], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['BsmtFin SF 1'], ax=cont_plot2[0,3], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['BsmtFin SF 2'], ax=cont_plot2[0,4], line_kws={'color':'red'})
+
+sns.regplot(y=df1['SalePrice'], x=df1['Bsmt Unf SF'], ax=cont_plot2[1,0], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Total Bsmt SF'], ax=cont_plot2[1,1], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['1st Flr SF'], ax=cont_plot2[1,2], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['2nd Flr SF'], ax=cont_plot2[1,3], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Low Qual Fin SF'], ax=cont_plot2[1,4], line_kws={'color':'red'})
+
+sns.regplot(y=df1['SalePrice'], x=df1['Gr Liv Area'], ax=cont_plot2[2,0], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Garage Area'], ax=cont_plot2[2,1], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Wood Deck SF'], ax=cont_plot2[2,2], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Open Porch SF'], ax=cont_plot2[2,3], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Enclosed Porch'], ax=cont_plot2[2,4], line_kws={'color':'red'})
+
+sns.regplot(y=df1['SalePrice'], x=df1['3Ssn Porch'], ax=cont_plot2[3,0], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Screen Porch'], ax=cont_plot2[3,1], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Pool Area'], ax=cont_plot2[3,2], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['Misc Val'], ax=cont_plot2[3,3], line_kws={'color':'red'})
+sns.regplot(y=df1['SalePrice'], x=df1['SalePrice'], ax=cont_plot2[3,4], line_kws={'color':'red'}) #kept this one just to fill out the subplot frame
+
+
+# part 3
+# categorical (nominal) dummy cross validation
+# I really hope I did this section correctly, I'm not entirely sure what the question was asking me to visualize, so I just went with the top 3 R^2 variables and put those in a cat plot
+df2 = df1
+df2 = pd.get_dummies(df2, columns=['MS Zoning', 'MS SubClass', 'Street', 'Alley', 'Land Contour', 'Lot Config', 'Neighborhood', 'Condition 1', 'Condition 2', 'Bldg Type', 'House Style', 'Roof Style', 'Roof Matl', 'Exter Qual', 'Exter Cond', 'Mas Vnr Type', 'Foundation', 'Heating', 'Central Air', 'Garage Type', 'Misc Feature', 'Sale Type', 'Sale Condition'])
+y= df2['SalePrice']
+
+
+# MS Zoning
+x=df2[['MS Zoning_A (agr)', 'MS Zoning_C (all)','MS Zoning_FV', 'MS Zoning_I (all)', 'MS Zoning_RH', 'MS Zoning_RL', 'MS Zoning_RM']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('MS Zoning accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# MS Subclass ***************************************************************
+x=df2[['MS SubClass_20', 'MS SubClass_30', 'MS SubClass_40', 'MS SubClass_45', 'MS SubClass_50', 'MS SubClass_60', 'MS SubClass_70', 'MS SubClass_75', 'MS SubClass_80', 'MS SubClass_85', 'MS SubClass_90', 'MS SubClass_120', 'MS SubClass_150', 'MS SubClass_160', 'MS SubClass_180', 'MS SubClass_190']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('MS SubClass accuracy: ' + str(linreg.score(x_test, y_test)))
+sns.catplot(x='MS SubClass',y='SalePrice',data=df1)
+
+
+
+# Street
+x=df2[['Street_Grvl', 'Street_Pave']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Street type accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Alley
+x=df2[['Alley_Grvl', 'Alley_Pave']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Alley type accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Land Contour
+x=df2[['Land Contour_Bnk', 'Land Contour_HLS', 'Land Contour_Low', 'Land Contour_Lvl']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Land Contour accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Lot Config
+x=df2[[ 'Lot Config_Corner', 'Lot Config_CulDSac', 'Lot Config_FR2', 'Lot Config_FR3', 'Lot Config_Inside']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Lot Config accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Neighborhood
+x=df2[['Neighborhood_Blmngtn', 'Neighborhood_Blueste', 'Neighborhood_BrDale', 'Neighborhood_BrkSide', 'Neighborhood_ClearCr', 'Neighborhood_CollgCr', 'Neighborhood_Crawfor', 'Neighborhood_Edwards', 'Neighborhood_Gilbert', 'Neighborhood_Greens', 'Neighborhood_GrnHill', 'Neighborhood_IDOTRR', 'Neighborhood_Landmrk', 'Neighborhood_MeadowV', 'Neighborhood_Mitchel', 'Neighborhood_NAmes', 'Neighborhood_NPkVill', 'Neighborhood_NWAmes', 'Neighborhood_NoRidge', 'Neighborhood_NridgHt', 'Neighborhood_OldTown', 'Neighborhood_SWISU', 'Neighborhood_Sawyer', 'Neighborhood_SawyerW', 'Neighborhood_Somerst', 'Neighborhood_StoneBr', 'Neighborhood_Timber', 'Neighborhood_Veenker']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Neighborhood accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Condition 1
+x=df2[['Condition 1_Artery', 'Condition 1_Feedr', 'Condition 1_Norm', 'Condition 1_PosA', 'Condition 1_PosN', 'Condition 1_RRAe', 'Condition 1_RRAn', 'Condition 1_RRNe', 'Condition 1_RRNn']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Condition 1 accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Condition 2
+x=df2[['Condition 2_Artery', 'Condition 2_Feedr', 'Condition 2_Norm', 'Condition 2_PosA', 'Condition 2_PosN', 'Condition 2_RRAe', 'Condition 2_RRAn', 'Condition 2_RRNn']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Condition 2 accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Building type
+x=df2[['Bldg Type_1Fam', 'Bldg Type_2fmCon', 'Bldg Type_Duplex', 'Bldg Type_Twnhs', 'Bldg Type_Twnhs']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Building type accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# House Style
+x=df2[['House Style_1.5Fin', 'House Style_1.5Unf', 'House Style_1Story', 'House Style_2.5Fin', 'House Style_2.5Unf', 'House Style_2Story', 'House Style_SFoyer', 'House Style_SLvl']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('House Style accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Roof Style
+x=df2[['Roof Style_Flat', 'Roof Style_Gable', 'Roof Style_Gambrel', 'Roof Style_Hip', 'Roof Style_Mansard', 'Roof Style_Shed']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Roof Style accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Roof Material
+x=df2[['Roof Matl_ClyTile', 'Roof Matl_CompShg', 'Roof Matl_Membran', 'Roof Matl_Metal', 'Roof Matl_Roll', 'Roof Matl_Tar&Grv', 'Roof Matl_WdShake', 'Roof Matl_WdShngl']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Roof Material accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Exterior Quality ********************************
+x=df2[['Exter Qual_Ex', 'Exter Qual_Fa', 'Exter Qual_Gd', 'Exter Qual_TA']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Exterior Quality accuracy: ' + str(linreg.score(x_test, y_test)))
+sns.catplot(y='SalePrice', x='Exter Qual', data=df1)
+
+# Exterior Condition
+x=df2[['Exter Cond_Ex', 'Exter Cond_Fa', 'Exter Cond_Gd', 'Exter Cond_Po', 'Exter Cond_TA']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Exterior Condition accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Masonry Veneer
+x=df2[['Mas Vnr Type_BrkCmn', 'Mas Vnr Type_BrkFace', 'Mas Vnr Type_CBlock', 'Mas Vnr Type_None', 'Mas Vnr Type_Stone']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Masonry Veneer Type accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Foundation
+x=df2[['Foundation_BrkTil', 'Foundation_CBlock', 'Foundation_PConc', 'Foundation_Slab', 'Foundation_Stone', 'Foundation_Wood']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Foundation Type accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Heating
+x=df2[['Heating_Floor', 'Heating_GasA', 'Heating_GasW', 'Heating_Grav', 'Heating_OthW', 'Heating_Wall']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Heating type accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Central Air
+x=df2[['Central Air_N', 'Central Air_Y']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Central Air accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Garage Type *************************************
+x=df2[['Garage Type_2Types', 'Garage Type_Attchd', 'Garage Type_Basment', 'Garage Type_BuiltIn', 'Garage Type_CarPort', 'Garage Type_Detchd']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Garage Type accuracy: ' + str(linreg.score(x_test, y_test)))
+sns.catplot(y='SalePrice', x='Garage Type', data=df1)
+
+# Misc Features
+x=df2[['Misc Feature_Elev', 'Misc Feature_Gar2', 'Misc Feature_Othr', 'Misc Feature_Shed', 'Misc Feature_TenC']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Misc Feature accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Sale Type
+x=df2[['Sale Type_COD', 'Sale Type_CWD', 'Sale Type_Con', 'Sale Type_ConLD', 'Sale Type_ConLI', 'Sale Type_ConLw', 'Sale Type_New', 'Sale Type_Oth', 'Sale Type_VWD', 'Sale Type_WD ']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Sale Type accuracy: ' + str(linreg.score(x_test, y_test)))
+
+# Sale Condition
+x=df2[['Sale Condition_Abnorml', 'Sale Condition_AdjLand', 'Sale Condition_Alloca', 'Sale Condition_Family', 'Sale Condition_Normal', 'Sale Condition_Partial']]
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+linreg = LinearRegression()
+linreg.fit(x_train, y_train)
+print('Sale Condition accuracy: ' + str(linreg.score(x_test, y_test)))
+
+#display(list(df1.columns.values))
+
+
+
+# part 4
+from sklearn.model_selection import GridSearchCV
+
+df3 = df1  #new data frame
+y=df3['SalePrice'] #set target as y
+df3 = df3.fillna('none') # fill all nans with 'none'
+# feature list for nominal features
+nom_features = df3[['MS Zoning', 'MS SubClass', 'Street', 'Alley', 'Land Contour', 'Lot Config', 'Neighborhood', 'Condition 1', 'Condition 2', 'Bldg Type', 'House Style', 'Roof Style', 'Roof Matl', 'Exter Qual', 'Exter Cond', 'Mas Vnr Type', 'Foundation', 'Heating', 'Central Air', 'Garage Type', 'Misc Feature', 'Sale Type', 'Sale Condition']]
+# feature list for discrete features
+disc_features = df3[['Order', 'Year Built', 'Year Remod/Add', 'Bsmt Full Bath', 'Bsmt Half Bath', 'Full Bath', 'Half Bath', 'Bedroom AbvGr', 'Kitchen AbvGr', 'TotRms AbvGrd', 'Fireplaces', 'Garage Yr Blt', 'Garage Cars', 'Mo Sold', 'Yr Sold']]
+# feature list for ordinal features
+ord_features = df3[['Lot Shape', 'Utilities', 'Land Slope', 'Overall Qual', 'Overall Cond', 'Exter Qual', 'Exter Cond', 'Bsmt Qual', 'Bsmt Cond', 'Bsmt Exposure', 'BsmtFin Type 1', 'BsmtFin Type 2', 'Heating QC', 'Electrical', 'Kitchen Qual', 'Functional', 'Fireplace Qu', 'Garage Finish','Garage Qual','Garage Cond', 'Paved Drive', 'Pool QC','Fence']]
+
+
+
+
+df_ord = pd.get_dummies(ord_features, columns=['Lot Shape', 'Utilities', 'Land Slope', 'Overall Qual', 'Overall Cond', 'Exter Qual', 'Exter Cond', 'Bsmt Qual', 'Bsmt Cond', 'Bsmt Exposure', 'BsmtFin Type 1', 'BsmtFin Type 2', 'Heating QC', 'Electrical', 'Kitchen Qual', 'Functional', 'Fireplace Qu', 'Garage Finish','Garage Qual','Garage Cond', 'Paved Drive', 'Pool QC','Fence'])
+df_nom = pd.get_dummies(nom_features, columns=['MS Zoning', 'MS SubClass', 'Street', 'Alley', 'Land Contour', 'Lot Config', 'Neighborhood', 'Condition 1', 'Condition 2', 'Bldg Type', 'House Style', 'Roof Style', 'Roof Matl', 'Exter Qual', 'Exter Cond', 'Mas Vnr Type', 'Foundation', 'Heating', 'Central Air', 'Garage Type', 'Misc Feature', 'Sale Type', 'Sale Condition'])
+df_disc = pd.get_dummies(disc_features, columns=['Order', 'Year Built', 'Year Remod/Add', 'Bsmt Full Bath', 'Bsmt Half Bath', 'Full Bath', 'Half Bath', 'Bedroom AbvGr', 'Kitchen AbvGr', 'TotRms AbvGrd', 'Fireplaces', 'Garage Yr Blt', 'Garage Cars', 'Mo Sold', 'Yr Sold'])
+combine = [df_ord, df_nom, df_disc]
+df_all = pd.concat(combine, axis=1)
+
+#three different transformers for the nominal, discrete and ordinal features, I know there has to be a way to combine them but I can't figure it out
+simple_trans_nom = make_column_transformer((OneHotEncoder(sparse=False, handle_unknown='ignore'), nom_features.columns), remainder = 'passthrough')
+simple_trans_disc = make_column_transformer((OneHotEncoder(sparse=False, handle_unknown='ignore'), df_disc.columns), remainder = 'passthrough') # unused because bad at python, used get_dummies instead
+simple_trans_ord = make_column_transformer((OneHotEncoder(sparse=False, handle_unknown='ignore'), ord_features.columns), remainder = 'passthrough')
+
+# put a standard scaler into all the pipelines
+# nominal pipes
+# Create the Linear Regression pipeline
+pipeline_reg = make_pipeline(simple_trans_nom,
+                             StandardScaler(),
+                             LinearRegression())
+# Create the ridge pipeline
+pipeline_ridge = make_pipeline(simple_trans_nom,
+                               StandardScaler(),
+                               Ridge())
+# Create the ElasticNet pipeline
+pipeline_elastic = make_pipeline(simple_trans_nom,
+                                 StandardScaler(),
+                                 ElasticNet())
+# Create the lasso pipeline
+pipeline_lasso = make_pipeline(simple_trans_nom,
+                               StandardScaler(),
+                               Lasso(tol=0.1)) # not sure if I was supposed to change the tolerance or let it print out the errors until it works, so I bumped it up a little bit
+
+# put a standard scaler into all the pipelines
+# ordinal pipes
+# Create the Linear Regression pipeline
+pipeline_reg_ord = make_pipeline(simple_trans_ord,
+                             StandardScaler(),
+                             LinearRegression())
+# Create the ridge pipeline
+pipeline_ridge_ord = make_pipeline(simple_trans_ord,
+                               StandardScaler(),
+                               Ridge())
+# Create the ElasticNet pipeline
+pipeline_elastic_ord = make_pipeline(simple_trans_ord,
+                                 StandardScaler(),
+                                 ElasticNet())
+# Create the lasso pipeline
+pipeline_lasso_ord = make_pipeline(simple_trans_ord,
+                               StandardScaler(),
+                               Lasso(tol=0.1))
+
+# put a standard scaler into all the pipelines
+# discrete pipes
+# Create the Linear Regression pipeline
+pipeline_reg_disc = make_pipeline(StandardScaler(),
+                                  LinearRegression())
+# Create the ridge pipeline
+pipeline_ridge_disc = make_pipeline(StandardScaler(),
+                                    Ridge())
+# Create the ElasticNet pipeline
+pipeline_elastic_disc = make_pipeline(StandardScaler(),
+                                      ElasticNet())
+# Create the lasso pipeline
+pipeline_lasso_disc = make_pipeline(StandardScaler(),
+                                    Lasso(tol=0.1))
+
+
+#display(list(.columns.values))
+
+# run the cross validation from my pipes
+x_train, x_test, y_train, y_test = train_test_split(nom_features, y, test_size=0.2)
+print('Nominal Regression without scaler: -1.6009117626726734e+23')
+print('Nominal Regression: ' + str(cross_val_score(pipeline_reg, x_train, y_train).mean()))
+print('Nominal Ridge without scaler: 0.7397720406533668')
+print('Nominal Ridge: ' + str(cross_val_score(pipeline_ridge, x_train, y_train).mean()))
+print('Nominal Lasso without scaler: 0.7327047112645629')
+print('Nominal Lasso: ' + str(cross_val_score(pipeline_lasso, x_train, y_train).mean()))
+print('Nominal ElasticNet without scaler: 0.4986085892871711')
+print('Nominal ElasticNet: ' + str(cross_val_score(pipeline_elastic, x_train, y_train).mean()))
+print("")
+
+x_train, x_test, y_train, y_test = train_test_split(ord_features, y, test_size=0.2)
+print('Ordinal Regression without scaler: -1.789384602175492e+23')
+print('Ordinal Regression: ' + str(cross_val_score(pipeline_reg_ord, x_train, y_train).mean()))
+print('Ordinal Ridge without scaler: 0.7652446423938688')
+print('Ordinal Ridge: ' + str(cross_val_score(pipeline_ridge_ord, x_train, y_train).mean()))
+print('Ordinal Lasso without scaler: 0.7515361521074476')
+print('Ordinal Lasso: ' + str(cross_val_score(pipeline_lasso_ord, x_train, y_train).mean()))
+print('Ordinal ElasticNet without scaler: 0.6079824995165934')
+print('Ordinal ElasticNet: ' + str(cross_val_score(pipeline_elastic_ord, x_train, y_train).mean()))
+print("")
+
+# these take forever to run, not sure why, but they do run
+x_train, x_test, y_train, y_test = train_test_split(df_disc, y, test_size=0.2)
+print('Discrete Regression without scaler: 0.7314938937045691')
+print('Discrete Regression: ' + str(cross_val_score(pipeline_reg_disc, x_train, y_train).mean())) 
+print('Discrete Ridge without scaler: 0.7363719471365359')
+print('Discrete Ridge: ' + str(cross_val_score(pipeline_ridge_disc, x_train, y_train).mean()))
+print('Discrete Lasso without scaler: 0.055254615341937784')
+print('Discrete Lasso: ' + str(cross_val_score(pipeline_lasso_disc, x_train, y_train).mean()))
+print('Discrete ElasticNet without scaler: 0.5114785455349651')
+print('Discrete ElasticNet: ' + str(cross_val_score(pipeline_elastic_disc, x_train, y_train).mean()))
+print("")
+
+x_train, x_test, y_train, y_test = train_test_split(df_all, y, test_size=0.2)
+print('Combined Regression: ' + str(cross_val_score(pipeline_reg_disc, x_train, y_train).mean()))
+print('combined Ridge: ' + str(cross_val_score(pipeline_ridge_disc, x_train, y_train).mean()))
+print('Combined Lasso: ' + str(cross_val_score(pipeline_lasso_disc, x_train, y_train).mean()))
+print('Combined ElasticNet: ' + str(cross_val_score(pipeline_elastic_disc, x_train, y_train).mean()))
+# Answers to Question 4 ****************************************************************************************************
+# Putting a standard scaler into the pipes seemed to have a hit or miss effect. The linear regressions became less accurate, while the ElasticNet became significantly more accurate.
+# The Ridge and Lasso values were pretty close, except for the discrete lasso which was much more accurate without the scaler
+#***************************************************************************************************************************
+
+
+
+# part 5
+
+#warnings.filterwarnings('ignore')
+x_train, x_test, y_train, y_test = train_test_split(df_all, y, test_size=0.2)
+alphas = np.array([1,0.8,0.6,0.4,0.2,0.01])
+
+
+#Ridge
+search_ridge = GridSearchCV(Ridge(), param_grid=dict(alpha=alphas), cv=10, n_jobs=1)
+search_ridge.fit(x_train,y_train)
+print("Ridge Regression:")
+print("best parameters: {}".format(search_ridge.best_params_))
+print("test-set score: {:.3f}".format(search_ridge.score(x_test, y_test)))
+
+#Lasso
+search_lasso = GridSearchCV(Lasso(tol=0.1), param_grid=dict(alpha=alphas), cv=10, n_jobs=1)
+search_lasso.fit(x_train,y_train)
+print("Lasso Regression:")
+print("best parameters: {}".format(search_lasso.best_params_))
+print("test-set score: {:.3f}".format(search_lasso.score(x_test, y_test)))
+
+#Elastic
+search_elastic = GridSearchCV(ElasticNet(), param_grid=dict(alpha=alphas), cv=5, n_jobs=1) # gonna try lowering the CV and see if that stops it from running forever (yes it did, but it still takes like 3 mins to run)
+search_elastic.fit(x_train,y_train)
+print("ElasticNet:")
+print("best parameters: {}".format(search_elastic.best_params_))
+print("test-set score: {:.3f}".format(search_elastic.score(x_test, y_test)))
+
+
+df_scores = search_ridge.cv_results_
+df_hist = pd.DataFrame(df_scores['param_alpha'])
+df_hist2 = pd.DataFrame(df_scores['mean_test_score'])
+mix = [df_hist, df_hist2]
+df4 = pd.concat(mix, axis=1)
+df4.hist()
+
+
+df_scores = search_lasso.cv_results_
+df_hist = pd.DataFrame(df_scores['param_alpha'])
+df_hist2 = pd.DataFrame(df_scores['mean_test_score'])
+mix = [df_hist, df_hist2]
+df4 = pd.concat(mix, axis=1)
+df4.hist()
+
+
+df_scores = search_elastic.cv_results_
+df_hist = pd.DataFrame(df_scores['param_alpha'])
+df_hist2 = pd.DataFrame(df_scores['mean_test_score'])
+mix = [df_hist, df_hist2]
+df4 = pd.concat(mix, axis=1)
+df4.hist()
+
+
+
+# part 6
+# I created horizontal bar graphs to show the weights of the coefficients
+
+# this is just a little function to construct the bar plots
+# it takes the data frames I make from each regression call and isolates the top 10 and bottom 10 coefficients, so the graph is readable
+def plot_coef(model, top_n = 10):
+    cols = x_train.columns
+    coef = model.coef_
+    stacked = list(zip(cols, coef))
+    stacked.sort(key=lambda x: x[1], reverse = True)
+    top_10 = pd.DataFrame(stacked).head(top_n)
+    bottom_10 = pd.DataFrame(stacked).tail(top_n)
+    return pd.concat([top_10, bottom_10], axis=0).plot.barh(x = 0, y = 1)
+
+print('Ridge Coefficients')
+# working the ridge regression
+ridge = Ridge(alpha=1.0)
+ridge.fit(df_all,y)
+print(ridge.coef_)
+ridge_coefs = pd.DataFrame({'variable':df_all.columns,
+                            'coef':ridge.coef_,
+                            'abs_coef':np.abs(ridge.coef_)})
+ridge_coefs.sort_values('abs_coef', inplace=True, ascending=False)
+ridge_coefs.head(20)
+plot_coef(ridge)
+
+
+print('Lasso Coefficients')
+# working the lasso regression
+lasso = Lasso(alpha=1.0)
+lasso.fit(df_all,y)
+lasso_coefs=pd.DataFrame({'variable':df_all.columns,
+                            'coef':lasso.coef_,
+                            'abs_coef':np.abs(lasso.coef_)})
+lasso_coefs.sort_values('abs_coef', inplace=True, ascending=False)
+lasso_coefs.head(20)
+plot_coef(lasso)
+
+print('Elastic Coefficients')
+# working the elastic regression
+elastic = ElasticNet(alpha=0.1)
+elastic.fit(df_all,y)
+elastic_coefs=pd.DataFrame({'variable':df_all.columns,
+                            'coef':elastic.coef_,
+                            'abs_coef':np.abs(elastic.coef_)})
+elastic_coefs.sort_values('abs_coef', inplace=True, ascending=False)
+elastic_coefs.head(20)
+plot_coef(elastic)

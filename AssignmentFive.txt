@@ -1,0 +1,91 @@
+# name: Blaine Graham
+# date: 4/12/2021
+# assignment 5
+
+from matplotlib import pyplot as plt
+import numpy as np
+import io
+import sklearn
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.inspection import permutation_importance
+import shap
+from sklearn.inspection import plot_partial_dependence
+
+# read data from file, isolate and drop the target column
+df = pd.read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv', sep=';')
+target = df.iloc[:,[11]]
+df = df.drop(df.columns[11], axis=1)
+
+# PART ONE ************************************************************************************************************************************
+# train random forest model for our RandomizedSearchCV
+x_train, x_test, y_train, y_test = train_test_split(df, target['quality'], random_state=0)
+rf = RandomForestRegressor().fit(x_train, y_train)
+
+# param_grid for RandomizedSearchCV
+param_grid = {'n_estimators': [100],
+             'max_features': ['auto'],
+             'max_depth': [2,6],
+             'min_samples_split': [2,10],
+             'min_samples_leaf': [1,5]}
+
+# create our RandomizedSearchCV model
+rscv = RandomizedSearchCV(estimator= rf, param_distributions= param_grid, scoring='r2', n_iter=8)
+rscv.fit(x_train, y_train)
+
+# create and train a RandomForestRegressor with our best_params from our CV
+model_one = RandomForestRegressor(**rscv.best_params_)
+model_one.fit(x_train, y_train)
+
+# run the permutation_importance of our trained best_estimator
+pi_one = permutation_importance(model_one, x_train, y_train, n_repeats=30, random_state=0)
+
+# PART TWO   ***********************************************************************************************************************************************************
+# print out the features ranked in order of permutation_importance
+print("Permutation Importance:      *************************************************")
+for i in pi_one.importances_mean.argsort()[::-1]:
+  if pi_one.importances_mean[i] - 2 * pi_one.importances_std[i] > 0:
+    print(f"{df.columns[i]:<8}  "
+          f"{pi_one.importances_mean[i]:.3f}  ")
+print()
+print()
+
+
+# PART THREE    ***********************************************************************************************************************************************************
+# shap values for our RandomForestRegressor from part 1
+#shap.initjs()
+x_output = x_train.copy()
+x_output.loc[:,'predict'] = np.round(model_one.predict(x_output),2)
+sample_one = x_output.iloc[0]
+explainer_model = shap.TreeExplainer(model_one)
+shap_values_sample_one = explainer_model.shap_values(sample_one)
+print("SHAP values for sample one:       ********************************************")
+for i in range(0,11):
+  print(df.columns[i], "      ", f"{shap_values_sample_one[i]:.3f}")
+print()
+print()
+
+
+# PART FOUR *****************************************************************************************************************************************************************
+# create 2 figures, and print the partial_dependence_plots to the figures
+print("Partial Dependence Plots:        **********************************************")
+fig1, ax1 = plt.subplots(figsize=(16,3))
+fig1 = plot_partial_dependence(rf, x_train, features = [0,1,2,3,4,5], ax=ax1, n_cols=6)
+plt.show(block=False)
+fig2, ax2 = plt.subplots(figsize=(16,3))
+fig2 = plot_partial_dependence(rf, x_train, features = [6,7,8,9,10], ax=ax2, n_cols=5)
+plt.show(block=False)
+print()
+print()
+
+# PART FIVE ********************************************************************************************************************************************************************
+# Create ICE box plots
+print("ICE Box Plots:                  ***********************************************")
+fig3, ax3 = plt.subplots(figsize=(16,3))
+fig3 = plot_partial_dependence(rf, x_train, features = [0,1,2,3,4,5], ax=ax3, n_cols=6, kind='individual')
+plt.show(block=False)
+fig4, ax4 = plt.subplots(figsize=(16,3))
+fig4 = plot_partial_dependence(rf, x_train, features = [6,7,8,9,10], ax=ax4, n_cols=5, kind='individual')
+plt.show(block=False)

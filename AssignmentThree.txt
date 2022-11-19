@@ -1,0 +1,233 @@
+# name: Blaine Graham
+# date: 3/10/2021
+# assignment 3
+
+from matplotlib import pyplot as plt
+import numpy as np
+import sklearn
+import pandas as pd
+from sklearn import datasets
+import seaborn as sns
+from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV
+from numpy import absolute, arange
+import warnings
+from sklearn.preprocessing import StandardScaler
+
+# load the data
+column_array = []
+# for loop will create an array to number our columns for easier matching to the data
+for x in range(86):
+  column_array.append(x+1)
+
+# this block is training data, need to isolate target data in column 86
+df_ticdata = pd.read_table('http://kdd.ics.uci.edu/databases/tic/ticdata2000.txt', header=0, names=column_array)
+target_data = df_ticdata.iloc[:,[85]]
+df_ticdata = df_ticdata.drop(df_ticdata.columns[85], axis=1)
+
+# this will get the test data (no target column)
+df_ticeval = pd.read_table('http://kdd.ics.uci.edu/databases/tic/ticeval2000.txt')
+
+# this will get the target values for test data
+df_tictarget = pd.read_table('http://kdd.ics.uci.edu/databases/tic/tictgts2000.txt')
+
+scaler = StandardScaler()
+df_ticdata_scaled = scaler.fit_transform(df_ticdata)
+df_ticeval_scaled = scaler.fit_transform(df_ticeval)
+
+# function to print the top 10 coefficients
+def plot_coef(model, top_n = 10):
+    cols = df_ticdata.columns
+    coef = model.coef_
+    stacked = list(zip(cols, coef))
+    stacked.sort(key=lambda x: x[1], reverse = True)
+    top_10 = pd.DataFrame(stacked).head(top_n)
+    return pd.concat([top_10], axis=0).plot.barh(x = 0, y = 1)
+
+
+print('Ridge Coefficients')
+# working the ridge regression
+ridge = Ridge(alpha=1.0)
+array = target_data[86]
+ridge.fit(df_ticdata_scaled,array)
+ridge_coefs = pd.DataFrame({'variable':df_ticdata.columns,
+                            'coef':ridge.coef_,
+                            'abs_coef':np.abs(ridge.coef_)})
+ridge_coefs.sort_values('abs_coef', inplace=True, ascending=True)
+ridge_coefs.head(10)
+plot_coef(ridge)
+print("training-set score: {:.3f}".format(ridge.score(df_ticdata_scaled, array)))
+print("test-set score: {:.3f}".format(ridge.score(df_ticeval_scaled, df_tictarget)))
+
+# *********************************************** Question 1 *********************************************************
+# the number 1 feature for prediction using the standard L1 regularization is feature 82, APLEZIER, which is the number of boat insurance policies
+# number 2 is AZEILPL, which is the number of surfboard policies
+# number 3 is PGEZONG, contribution to family accident policies
+# number 4 is ABYSTAND, number of social security insurance policies
+# number 5 is AINBOED, number of property insurance policies
+# number 6 is PWAOREG, contribution disability insurance policies
+# number 7 is PAANHANG, contribution trailer insurance policies
+# number 8 is AFIETS, number of bicycle policies
+# number 9 is ALEVEN, number of life insurance policies
+# number 10 is AVRAAUT, number of lorry insurance policies
+#
+# It seems like having a lot of other insurance policies, a boat or surf boards is a good indicator of your likelyhood to have a mobile home policy
+# ******************************************************************************************************************
+
+
+
+
+
+
+
+# part 2
+warnings.filterwarnings("ignore")
+
+def plot_logreg(model, top_n = 5):
+    cols = df_ticdata.columns
+    coef = abs(model.coef_[0])
+    stacked = list(zip(cols, coef))
+    stacked.sort(key=lambda x: x[1], reverse = True)
+    top_10 = pd.DataFrame(stacked).head(top_n)
+    return pd.concat([top_10], axis=0).plot.barh(x=0, y=1)
+
+# L1 regression
+param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100], 'penalty': ['l1'], 'solver': ['saga']}
+best_ridge = GridSearchCV(LogisticRegression(), param_grid=param_grid, cv=5, n_jobs=1)
+best_ridge.fit(df_ticdata_scaled,array)
+print("Logistic Regression:")
+print("best parameters: {}".format(best_ridge.best_params_))
+print("training-set score: {:.3f}".format(best_ridge.score(df_ticdata, array)))
+print("test-set score: {:.3f}".format(best_ridge.score(df_ticeval, df_tictarget)))
+
+logreg = LogisticRegression(penalty='l1', C=0.001, solver='liblinear')
+logreg.fit(df_ticdata,array)
+
+
+best_ridge_coefs = pd.DataFrame({'variable':df_ticdata.columns,
+                            'coef': logreg.coef_[0],
+                            'abs_coef': np.abs(logreg.coef_[0])})
+best_ridge_coefs.sort_values('abs_coef', inplace=True, ascending=True)
+best_ridge_coefs.head(5)
+plot_logreg(logreg)
+
+# ************************************ Question 2 ********************************************
+# After using Grid Search on our 'C' values our accuracy has dramatically improved, giving us equal accuracy in both test and training data
+# Additionally, our important features have changed. With only 5 features having non zero coefficients.
+# Our new most important feature is MAUT1, which is having a single car insurance policy.
+# Our second most important feature is MOSTYPE, which is the customer sub type.
+# Third is MZFONDS, the National Health Service.
+# Fourth is MRELGE, or whether or not the person is married.
+# Fifth is MKOOPKLA, or being in the "purchasing power class"
+#
+# These features make much more sense to me than the previous set. Several of these features, such as MOSTYPE and MKOOPKLA tell us what sort of socio economic background the person comes from.
+# Caravans, being expensive machines, are far more likely to be owned by someone with the disposable income not just to buy a caravan, but use it regularly. 
+# ********************************************************************************************
+
+
+
+
+
+
+# part 3
+# This code block takes forever to run, which normally means I've messed something up, but in this case I think it's due to the massive number of features we're creating for our model
+from sklearn.preprocessing import PolynomialFeatures
+
+poly = PolynomialFeatures(degree=3)
+train_poly = poly.fit_transform(df_ticdata)
+test_poly = poly.fit_transform(df_ticeval)
+poly.fit(df_ticdata, array)
+model = LogisticRegression(penalty='l1', C=0.001, solver='liblinear')
+model.fit(train_poly, array)
+
+print("Polynomial Logistic Regression:")
+print("best parameters: {}".format(best_ridge.best_params_))
+print("training-set score: {:.3f}".format(model.score(train_poly, array)))
+print("test-set score: {:.3f}".format(model.score(test_poly, df_tictarget)))
+
+
+# ************************************** Question 3 ***********************************************
+# Switching to polynomial features has not affected the accuracy of my Logistic Regression significantly.
+# While running at PolynomialFeatures(degree=2), there is no change in our test or training accuracy
+# While running at PolynomialFeatures(degree=3), our training accuracy increases by 0.02, but our test accuracy decreases by 0.01 (over the Grid Search Logistic Regression from part 2)
+# While trying to run at PolynomialFeatures(degree=4), google colab crashes due to too much ram being used by the runtime. 
+# I'm hoping I did this section right, it came together a lot faster than the previous two sections. Between that and the huge amount of RAM that this code block is using I feel like I probably messed up somewhere
+# But I have nothing to compare it to except some youtube videos on data sets with like 4 features and 12 rows of data, and my numbers seem within the range they should be. 
+# The huge increase in the number of features might be responsible for the RAM overload.
+# I'm going to assume I did this section correctly
+# **************************************************************************************************
+
+
+
+
+
+
+
+# Part 4
+
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
+from sklearn.tree import plot_tree
+
+# show a 3 depth tree to prove I can make legible trees
+tree = DecisionTreeClassifier(max_depth=3)
+tree.fit(df_ticdata, array)
+tree_dot = plot_tree(tree)
+
+# create a 5 depth tree because GridSearchCV says that's the best estimator
+tree = DecisionTreeClassifier(max_depth=5)
+tree.fit(df_ticdata, array)
+
+
+
+# plot the feature importances of the tree
+def plot_tree_features(model, top_n = 5):
+    cols = df_ticdata.columns
+    coef = abs(model.feature_importances_)
+    stacked = list(zip(cols, coef))
+    stacked.sort(key=lambda x: x[1], reverse = True)
+    top_10 = pd.DataFrame(stacked).head(top_n)
+    return pd.concat([top_10], axis=0).plot.barh(x=0, y=1)
+
+
+# GridSearchCV to find best estimator
+param_grid = {'max_depth': range(1,7)}
+grid = GridSearchCV(DecisionTreeClassifier(random_state=0), param_grid=param_grid, cv=10)
+grid.fit(df_ticdata, array)
+
+
+# create some arrays for plotting graphs
+scores = []
+scores = grid.cv_results_['mean_test_score']
+depth = [2,3,4,5,6,7]
+fig, ax = plt.subplots()
+
+
+# Create all the graphs
+plt.plot(depth, scores)
+plt.xlabel('Depth')
+plt.ylabel('Mean Score')
+ax.grid()
+plt.show()
+plot_tree_features(tree)
+
+# *********************************************** Question 4 ***********************************
+# With our tree, the most important feature is PPERSAUT, the Contribution Car Policies
+# number 2 is PBRAND, Contribution Fire Policies
+# number 3 is MOSTYPE, the Customer Subtype
+# number 4 is PPLEZIER, Contribution Boat Policies
+# number 5 is MGODOV, or being of an 'Other' Religion
+#
+# Our important features for the tree are not entirely different from our other models.
+# MOSTYPE was a top five feature for both our LogisticRegression model and our tree model.
+# However for each model, most of the important features are not shared by other models.
+# This can obviously be due to how each different model performs its feature selection.
+# I do find it interesting how all 3 models achieve an accuracy of around 0.94 while selecting different features.
+# I think this is probably due to the low coefficient numbers for our LogReg models. The largest coefficient being a little over 0.08.
+# Having such low feature importance means that no particular feature is heavily influencing the regression.
+# ***********************************************************************************************
+
+
+
+

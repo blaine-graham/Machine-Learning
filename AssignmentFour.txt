@@ -1,0 +1,238 @@
+# name: Blaine Graham
+# date: 4/1/2021
+# assignment 4
+
+from matplotlib import pyplot as plt
+import numpy as np
+import io
+import sklearn
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
+from sklearn.tree import plot_tree
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import cross_val_score, cross_validate
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling import RandomOverSampler
+from imblearn.ensemble import BalancedBaggingClassifier
+from imblearn.under_sampling import CondensedNearestNeighbour
+from imblearn.pipeline import make_pipeline as make_imb_pipeline
+from imblearn.under_sampling import EditedNearestNeighbours
+import warnings
+
+
+
+#read in the data
+df = pd.read_csv('https://raw.githubusercontent.com/blaine-graham/Machine-Learning/main/healthcare-dataset-stroke-data.csv')
+#print(list(df.columns.values))
+
+# isolate target data and drop from data frame
+target = df.iloc[:,[11]]
+df = df.drop(df.columns[11], axis=1)
+
+# remove Unique ID from data frame so it doesn't affect our data
+df = df.drop(df.columns[0], axis=1)
+
+#display(list(df.columns.values))
+# fill na data with '0'
+df2 = df.fillna(0, inplace=True)
+target = target.fillna(0)
+
+# get_dummies for categorical data
+df2 = pd.get_dummies(df, columns=['gender','ever_married','work_type','Residence_type','smoking_status'])
+#print(list(df2.columns.values))
+
+
+# section 1
+# decision tree
+tree = DecisionTreeClassifier(max_depth=5)
+tree.fit(df2, target)
+cols = df2.columns
+coef = tree.feature_importances_
+stacked = list(zip(cols, coef))
+stacked.sort(key=lambda x: x[1], reverse = True)
+top_5 = pd.DataFrame(stacked).head(5)
+pd.concat([top_5], axis=0).plot.barh(x = 0, y = 1, title='decision tree')
+
+# Random Forest
+x_train, x_test, y_train, y_test = train_test_split(df2, target['stroke'], random_state=0)
+rf = RandomForestClassifier(n_estimators=100).fit(x_train, y_train)
+cols = df2.columns
+coef = rf.feature_importances_
+stacked = list(zip(cols, coef))
+stacked.sort(key=lambda x: x[1], reverse = True)
+top_5 = pd.DataFrame(stacked).head(5)
+pd.concat([top_5], axis=0).plot.barh(x = 0, y = 1, title='random forest')
+
+# Gradient Boosting
+xgb = XGBClassifier()
+xgb.fit(x_train, y_train)
+cols = df2.columns
+coef = xgb.feature_importances_
+stacked = list(zip(cols, coef))
+stacked.sort(key=lambda x: x[1], reverse = True)
+top_5 = pd.DataFrame(stacked).head(5)
+pd.concat([top_5], axis=0).plot.barh(x = 0, y = 1, title='XG Boost classifier')
+
+
+# ROC_AUC
+rf_auc = cross_val_score(RandomForestClassifier(), x_test, y_test, scoring="roc_auc")
+tree_auc = cross_val_score(DecisionTreeClassifier(), x_test, y_test, scoring="roc_auc")
+xgb_auc = cross_val_score(XGBClassifier(), x_test, y_test, scoring="roc_auc")
+
+# average_precision
+rf_ap = cross_val_score(RandomForestClassifier(), x_test, y_test, scoring="average_precision")
+tree_ap = cross_val_score(DecisionTreeClassifier(), x_test, y_test, scoring="average_precision")
+xgb_ap = cross_val_score(XGBClassifier(), x_test, y_test, scoring="average_precision")
+print("AUC for decision tree: " + str(tree_auc.mean()))
+print("Average precision for decision tree: " + str(tree_ap.mean()))
+print('')
+print("AUC for random forest: " + str(rf_auc.mean()))
+print("Average precision for random forest: " + str(rf_ap.mean()))
+print('')
+print("AUC for XGBoost: " + str(xgb_auc.mean()))
+print("Average precision for XGBoost: " + str(xgb_ap.mean()))
+
+
+
+
+
+
+
+
+# section 2
+# re balance the data in 4 ways
+
+# method 1: Random Under Sampling
+# ********************************************************************************************************************
+warnings.filterwarnings('ignore')
+rus = RandomUnderSampler(replacement=False, random_state=0)
+x_train_undersample, y_train_undersample = rus.fit_resample(x_train, y_train)
+rus_pipe_tree = make_imb_pipeline(rus, DecisionTreeClassifier())
+rus_pipe_rf = make_imb_pipeline(rus, RandomForestClassifier(n_estimators=100))
+rus_pipe_xgb = make_imb_pipeline(rus, XGBClassifier())
+rf_rus = cross_validate(rus_pipe_rf, x_train_undersample, y_train_undersample, cv=10,scoring=("roc_auc", 'average_precision'))
+tree_rus = cross_validate(rus_pipe_tree, x_train_undersample, y_train_undersample, cv=10,scoring=("roc_auc", 'average_precision'))
+xgb_rus = cross_validate(rus_pipe_xgb, x_train_undersample, y_train_undersample, cv=10,scoring=("roc_auc", 'average_precision'))
+print("Random Under Sampling ***********************************************")
+print("Random Forest: ")
+print(pd.DataFrame(rf_rus)[['test_roc_auc', 'test_average_precision']].mean())
+print('')
+print("Decision Tree: ")
+print(pd.DataFrame(tree_rus)[['test_roc_auc', 'test_average_precision']].mean())
+print('')
+print("XGBclassifier: ")
+print(pd.DataFrame(xgb_rus)[['test_roc_auc', 'test_average_precision']].mean())
+print("")
+
+
+# method 2: Random Over Sampling
+# ********************************************************************************************************************
+ros = RandomOverSampler(random_state=0)
+x_train_subsample, y_train_subsample = ros.fit_resample(x_train, y_train)
+ros_pipe_tree = make_imb_pipeline(ros, DecisionTreeClassifier())
+ros_pipe_rf = make_imb_pipeline(ros, RandomForestClassifier(n_estimators=100))
+ros_pipe_xgb = make_imb_pipeline(ros, XGBClassifier())
+rf_ros = cross_validate(ros_pipe_rf, x_train_subsample, y_train_subsample, cv=10,scoring=("roc_auc", 'average_precision'))
+tree_ros = cross_validate(ros_pipe_tree, x_train_subsample, y_train_subsample, cv=10,scoring=("roc_auc", 'average_precision'))
+xgb_ros = cross_validate(ros_pipe_xgb, x_train_subsample, y_train_subsample, cv=10,scoring=("roc_auc", 'average_precision'))
+print("Random Over Sampling *************************************************")
+print("Random Forest: ")
+print(pd.DataFrame(rf_ros)[['test_roc_auc', 'test_average_precision']].mean())
+print('')
+print("Decision Tree: ")
+print(pd.DataFrame(tree_ros)[['test_roc_auc', 'test_average_precision']].mean())
+print('')
+print("XGBclassifier: ")
+print(pd.DataFrame(xgb_ros)[['test_roc_auc', 'test_average_precision']].mean())
+print("")
+
+# method 3: BalancedBaggingClassifier
+# ********************************************************************************************************************
+bbc_tree = BalancedBaggingClassifier(base_estimator=tree, random_state=0).fit(x_train, y_train)
+bbc_rf = BalancedBaggingClassifier(base_estimator=rf, random_state=0).fit(x_train, y_train)
+bbc_xgb = BalancedBaggingClassifier(base_estimator=xgb, random_state=0).fit(x_train, y_train)
+rf_bbc = cross_validate(bbc_rf, x_train, y_train, cv=10,scoring=("roc_auc", 'average_precision'))
+tree_bbc = cross_validate(bbc_tree, x_train, y_train, cv=10,scoring=("roc_auc", 'average_precision'))
+xgb_bbc = cross_validate(bbc_xgb, x_train, y_train, cv=10,scoring=("roc_auc", 'average_precision'))
+print("Balanced Bagging Classifier *****************************************")
+print("Random Forest: ")
+print(pd.DataFrame(rf_bbc)[['test_roc_auc', 'test_average_precision']].mean())
+print('')
+print("Decision Tree: ")
+print(pd.DataFrame(tree_bbc)[['test_roc_auc', 'test_average_precision']].mean())
+print('')
+print("XGBclassifier: ")
+print(pd.DataFrame(xgb_bbc)[['test_roc_auc', 'test_average_precision']].mean())
+print('')
+print("")
+
+# method 4: EditedNearestNeighbors
+# ********************************************************************************************************************
+enn = EditedNearestNeighbours(n_neighbors=5)
+x_train_enn, y_train_enn = enn.fit_resample(x_train, y_train)
+enn_mode = EditedNearestNeighbours(kind_sel='mode', n_neighbors=5)
+enn_pipe_tree = make_imb_pipeline(enn, DecisionTreeClassifier())
+enn_pipe_rf = make_imb_pipeline(enn, RandomForestClassifier(n_estimators=100))
+enn_pipe_xgb = make_imb_pipeline(enn, XGBClassifier())
+rf_enn = cross_validate(enn_pipe_rf, x_train_enn, y_train_enn, cv=10,scoring=("roc_auc", 'average_precision'))
+tree_enn = cross_validate(enn_pipe_tree, x_train_enn, y_train_enn, cv=10,scoring=("roc_auc", 'average_precision'))
+xgb_enn = cross_validate(enn_pipe_xgb, x_train_enn, y_train_enn, cv=10,scoring=("roc_auc", 'average_precision'))
+print("Edited Nearest Neighbors ***********************************************")
+print("Random Forest: ")
+print(pd.DataFrame(rf_enn)[['test_roc_auc', 'test_average_precision']].mean())
+print('')
+print("Decision Tree: ")
+print(pd.DataFrame(tree_enn)[['test_roc_auc', 'test_average_precision']].mean())
+print('')
+print("XGBclassifier: ")
+print(pd.DataFrame(xgb_enn)[['test_roc_auc', 'test_average_precision']].mean())
+print("")
+
+
+
+
+
+
+
+
+
+
+
+
+
+***********************************************************************************************************************
+# Section 3
+# Random Forest
+x_train, x_test, y_train, y_test = train_test_split(x_train_subsample, y_train_subsample, random_state=1)
+rf = RandomForestClassifier(n_estimators=100).fit(x_train, y_train)
+cols = df2.columns
+coef = rf.feature_importances_
+stacked = list(zip(cols, coef))
+stacked.sort(key=lambda x: x[1], reverse = True)
+top_5 = pd.DataFrame(stacked).head(5)
+pd.concat([top_5], axis=0).plot.barh(x = 0, y = 1, title='random forest')
+
+# Gradient Boosting
+xgb = XGBClassifier()
+xgb.fit(x_train, y_train)
+cols = df2.columns
+coef = xgb.feature_importances_
+stacked = list(zip(cols, coef))
+stacked.sort(key=lambda x: x[1], reverse = True)
+top_5 = pd.DataFrame(stacked).head(5)
+pd.concat([top_5], axis=0).plot.barh(x = 0, y = 1, title='XG Boost classifier')
+
+
+
+
+
+
+
+
+
+
+
+

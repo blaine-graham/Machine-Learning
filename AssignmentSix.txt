@@ -1,0 +1,57 @@
+# assignment 6
+# part one
+
+from matplotlib import pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn import cluster, datasets, mixture
+from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.mixture import GaussianMixture
+
+
+# section 1
+n_samples = 1500
+random_state = 170
+X,y = datasets.make_blobs(n_samples=n_samples, random_state=random_state)
+transformation = [[0.6, -0.6], [-0.4,0.8]]
+x_aniso = np.dot(X, transformation)
+plt.plot(x_aniso[:,0],x_aniso[:,1],'o', color='black')
+plt.show
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# part 2
+km = KMeans(n_clusters=5, random_state=random_state)
+km.fit(X)
+plt.scatter(X[:,0], X[:,1], c=km.labels_)
+plt.title('KMeans')
+plt.show()
+
+agg_cluster = AgglomerativeClustering(n_clusters=5, affinity='euclidean', linkage='ward')
+agg_cluster.fit_predict(X)
+plt.scatter(X[:,0], X[:,1], c=agg_cluster.labels_)
+plt.title('Agglomerative Clusters')
+plt.show()
+
+dbscan_cluster = cluster.DBSCAN(eps=0.5, min_samples=5, metric='euclidean').fit_predict(X)
+plt.scatter(X[:,0], X[:,1], c=dbscan_cluster, cmap='rainbow')
+plt.title('DBScan')
+plt.show()
+
+gm = GaussianMixture(n_components=5).fit_predict(X)
+plt.scatter(X[:,0], X[:,1], c=gm, s=40, cmap='rainbow')
+plt.title('Gaussian Mixture')
+plt.show()
